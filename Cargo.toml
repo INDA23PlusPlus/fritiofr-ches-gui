@@ -1,0 +1,17 @@
+[package]
+name = "fritiofr-chess-gui"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ChessAPI = { git = "https://github.com/INDA23PlusPlus/arjon-chessapi" }
+fritiofr_chess = { git = "https://github.com/INDA23PlusPlus/fritiofr-chess" }
+
+piston = "0.53.0"
+piston2d-graphics = "0.43.0"
+pistoncore-glutin_window = "0.71.0"
+piston2d-opengl_graphics = "0.82.0"
+find_folder = "0.3.0"
+piston_window = "0.129.0"
