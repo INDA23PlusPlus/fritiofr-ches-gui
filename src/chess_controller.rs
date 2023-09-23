@@ -1,4 +1,4 @@
-use fritiofr_chess::PieceType;
+use fritiofr_chess::{Color, PieceType};
 use fritiofr_chess::{Game, Move};
 use piston::input::*;
 use piston::Event;
@@ -22,6 +22,20 @@ impl ChessController {
         }
     }
 
+    fn get_king_pos(&self, color: Color) -> (usize, usize) {
+        (0..8)
+            .map(|x| (0..8).map(move |y| (x, y)))
+            .flatten()
+            .find(|(x, y)| {
+                if let Some(piece) = self.game.get_board().get_tile(*x, *y) {
+                    return piece.color == color && piece.piece_type == PieceType::King;
+                } else {
+                    return false;
+                }
+            })
+            .unwrap()
+    }
+
     pub fn event(&mut self, size: [u32; 2], e: &Event) {
         if let Some(pos) = e.mouse_cursor_args() {
             self.cursor_pos = pos;
@@ -40,20 +54,8 @@ impl ChessController {
                 self.game.apply_move(*mv).unwrap();
 
                 if self.game.is_check() {
-                    self.check = Some(
-                        (0..8)
-                            .map(|x| (0..8).map(move |y| (x, y)))
-                            .flatten()
-                            .find(|&(x, y)| {
-                                if let Some(piece) = self.game.get_board().get_tile(x, y) {
-                                    return piece.color == self.game.get_turn()
-                                        && piece.piece_type == PieceType::King;
-                                } else {
-                                    return false;
-                                }
-                            })
-                            .unwrap(),
-                    );
+                    let current_turn = self.game.get_turn();
+                    self.check = Some(self.get_king_pos(current_turn));
                 } else {
                     self.check = None;
                 }
