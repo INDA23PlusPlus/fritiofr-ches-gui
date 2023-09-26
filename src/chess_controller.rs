@@ -1,24 +1,31 @@
-use fritiofr_chess::{Color, PieceType};
-use fritiofr_chess::{Game, Move};
 use piston::input::*;
 use piston::Event;
 
+use ChessAPI::board::*;
+use ChessAPI::piece::*;
+
+use crate::animation::AnimatePosition;
+use crate::animation::Animation;
+use crate::animation::AnimationTimingFunction;
+
 pub struct ChessController {
-    pub game: Game,
+    pub board: Board,
     pub from: Option<(usize, usize)>,
     pub moves: Vec<Move>,
     pub check: Option<(usize, usize)>,
     cursor_pos: [f64; 2],
+    pub animations: Vec<AnimatePosition>,
 }
 
 impl ChessController {
     pub fn new() -> ChessController {
         ChessController {
-            game: Game::start_pos(),
+            board: Board::new(),
             from: None,
             check: None,
             moves: Vec::new(),
             cursor_pos: [0.0, 0.0],
+            animations: vec![],
         }
     }
 
@@ -27,7 +34,7 @@ impl ChessController {
             .map(|x| (0..8).map(move |y| (x, y)))
             .flatten()
             .find(|(x, y)| {
-                if let Some(piece) = self.game.get_board().get_tile(*x, *y) {
+                if let Some(piece) = self.board.get_board()[*y][*x] {
                     return piece.color == color && piece.piece_type == PieceType::King;
                 } else {
                     return false;
@@ -37,6 +44,10 @@ impl ChessController {
     }
 
     pub fn event(&mut self, size: [u32; 2], e: &Event) {
+        if !self.animations.is_empty() {
+            return;
+        }
+
         if let Some(pos) = e.mouse_cursor_args() {
             self.cursor_pos = pos;
         }
@@ -48,13 +59,22 @@ impl ChessController {
             let x = x as usize;
             let y = y as usize;
 
-            let mv = self.moves.iter().find(|mv| mv.to() == (x, y));
+            let mv = self
+                .moves
+                .iter()
+                .find(|mv| (mv.to.col, mv.to.row) == (x as i8, y as i8));
 
             if let Some(mv) = mv {
-                self.game.apply_move(*mv).unwrap();
+                self.animations = vec![AnimatePosition::new()
+                    .duration(0.2)
+                    .timing_function(AnimationTimingFunction::Ease)
+                    .start((mv.from.col as f64, mv.from.row as f64))
+                    .end((mv.to.col as f64, mv.to.row as f64))];
 
-                if self.game.is_check() {
-                    let current_turn = self.game.get_turn();
+                self.board.make_move(mv).unwrap();
+
+                if self.board.is_check() {
+                    let current_turn = self.board.whose_turn();
                     self.check = Some(self.get_king_pos(current_turn));
                 } else {
                     self.check = None;
@@ -62,13 +82,30 @@ impl ChessController {
 
                 self.from = None;
                 self.moves = Vec::new();
-            } else if let Some(moves) = self.game.gen_moves(x, y) {
-                self.from = Some((x as usize, y as usize));
-                self.moves = moves;
             } else {
-                self.from = None;
-                self.moves = Vec::new();
+                let moves = self
+                    .board
+                    .generate_legal_moves()
+                    .into_iter()
+                    .filter(|mv| (mv.from.col, mv.from.row) == (x as i8, y as i8))
+                    .collect::<Vec<Move>>();
+
+                if moves.len() > 0 {
+                    self.from = Some((x as usize, y as usize));
+                    self.moves = moves;
+                } else {
+                    self.from = None;
+                    self.moves = Vec::new();
+                }
             }
         }
+    }
+
+    pub fn update(&mut self, args: &UpdateArgs) {
+        for a in self.animations.iter_mut() {
+            a.tick_dt(args.dt);
+        }
+
+        self.animations.retain(|a| !a.is_done());
     }
 }

@@ -7,8 +7,9 @@ use piston::event_loop::{EventSettings, Events};
 use piston::input::{RenderArgs, RenderEvent, UpdateArgs, UpdateEvent};
 use piston::window::WindowSettings;
 
-use fritiofr_chess::{Color, Game, Move, Piece, PieceType};
+use ChessAPI::piece::*;
 
+use crate::animation::Animation;
 use crate::chess_controller;
 
 pub struct ChessRenderer {
@@ -108,6 +109,7 @@ impl ChessRenderer {
         let size = width / 8.0;
         let ellipse_size = size / 3.5;
 
+        let screen = rectangle::square(0.0, 0.0, width);
         let square = rectangle::square(0.0, 0.0, size);
         let ellipse_square = rectangle::square(
             (size - ellipse_size) / 2.0,
@@ -142,15 +144,17 @@ impl ChessRenderer {
             }
 
             chess_controller.moves.iter().for_each(|mv| {
-                if mv.is_capture() {
-                    let (x, y) = mv.to();
+                if chess_controller.board.get_board()[mv.to.row as usize][mv.to.col as usize]
+                    .is_some()
+                {
+                    let x = mv.to.col as f64;
+                    let y = mv.to.row as f64;
 
                     let transform = c.transform.trans((x as f64) * size, (y as f64) * size);
                     rectangle(CAPTURE_COLOR, square, transform, gl);
                 } else {
-                    let (x, y) = mv.to();
-                    let x = x as f64;
-                    let y = y as f64;
+                    let x = mv.to.col as f64;
+                    let y = mv.to.row as f64;
                     let transform = c.transform.trans(x * size, y * size);
                     ellipse(SELECT_COLOR, ellipse_square, transform, gl);
                 }
@@ -161,10 +165,17 @@ impl ChessRenderer {
                     let x = x as f64;
                     let y = y as f64;
 
-                    if let Some(piece) = chess_controller
-                        .game
-                        .get_board()
-                        .get_tile(x as usize, y as usize)
+                    if !chess_controller.animations.is_empty() {
+                        if chess_controller
+                            .animations
+                            .iter()
+                            .any(|a| (x, y) == (a.end.0, a.end.1))
+                        {
+                            continue;
+                        }
+                    }
+
+                    if let Some(piece) = chess_controller.board.get_board()[y as usize][x as usize]
                     {
                         image.draw(
                             self.textures.piece_to_texture(&piece),
@@ -176,12 +187,43 @@ impl ChessRenderer {
                 }
             }
 
+            if !chess_controller.animations.is_empty() {
+                for animation in chess_controller.animations.clone() {
+                    let (x, y) = animation.pos();
+                    let (end_x, end_y) = animation.end;
+
+                    let piece =
+                        chess_controller.board.get_board()[end_y as usize][end_x as usize].unwrap();
+
+                    image.draw(
+                        self.textures.piece_to_texture(&piece),
+                        &graphics::draw_state::DrawState::default(),
+                        c.transform.trans(x * size, y * size),
+                        gl,
+                    );
+                }
+            }
+
+            // rectangle([0.0, 0.0, 0.0, 0.8], screen, c.transform, gl);
+            // let text_box = [
+            //     width / 2.0,
+            //     width / 2.0,
+            //     width / 2.0 - 50.0,
+            //     width / 4.0 - 50.0,
+            // ];
+            //
+            // let rect = rectangle::Rectangle::new_round([1.0, 1.0, 1.0, 1.0], 5.0);
+            //
+            // rect.draw(
+            //     rectangle::centered(text_box),
+            //     &Default::default(),
+            //     c.transform,
+            //     gl,
+            // );
+
             // Draw a box rotating around the middle of the screen.
         });
     }
 
-    pub fn update(&mut self, args: &UpdateArgs) {
-
-        // Possible animation code
-    }
+    pub fn update(&mut self, args: &UpdateArgs) {}
 }
