@@ -204,24 +204,35 @@ impl ChessRenderer {
                 }
             }
 
-            // rectangle([0.0, 0.0, 0.0, 0.8], screen, c.transform, gl);
-            // let text_box = [
-            //     width / 2.0,
-            //     width / 2.0,
-            //     width / 2.0 - 50.0,
-            //     width / 4.0 - 50.0,
-            // ];
-            //
-            // let rect = rectangle::Rectangle::new_round([1.0, 1.0, 1.0, 1.0], 5.0);
-            //
-            // rect.draw(
-            //     rectangle::centered(text_box),
-            //     &Default::default(),
-            //     c.transform,
-            //     gl,
-            // );
+            if chess_controller.promotion_dialog {
+                let t = chess_controller.promotion_animation.value() as f32;
+                rectangle([0.0, 0.0, 0.0, 0.9 * t], screen, c.transform, gl);
 
-            // Draw a box rotating around the middle of the screen.
+                let rect = rectangle::Rectangle::new_round([0.95, 0.95, 0.95, 1.0 * t], 5.0);
+
+                for i in 0..4 {
+                    let gap = 10.0;
+
+                    let x = width / 2.0 - (size + gap) * 2.0 + gap / 2.0 + (size + gap) * i as f64;
+                    let y = width / 2.0 - size / 2.0;
+                    let trans = c.transform.trans(x, y);
+
+                    rect.draw(square, &Default::default(), trans, gl);
+                    let tex = self.textures.piece_to_texture(&Piece {
+                        color: chess_controller.board.whose_turn(),
+                        piece_type: match i {
+                            0 => PieceType::Queen,
+                            1 => PieceType::Rook,
+                            2 => PieceType::Bishop,
+                            3 => PieceType::Knight,
+                            _ => unreachable!(),
+                        },
+                    });
+
+                    let image = image.clone().color([1.0, 1.0, 1.0, 1.0 * t]);
+                    image.draw(tex, &graphics::draw_state::DrawState::default(), trans, gl);
+                }
+            }
         });
     }
 
