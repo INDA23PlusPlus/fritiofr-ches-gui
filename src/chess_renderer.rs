@@ -223,8 +223,13 @@ impl ChessRenderer {
                 }
             }
 
-            if chess_controller.promotion_dialog {
+            // Draw the promotion dialog box thingy
+            {
                 let t = chess_controller.promotion_animation.value() as f32;
+                let t = match chess_controller.promotion_dialog {
+                    true => t,
+                    false => 1.0 - t,
+                };
                 rectangle([0.0, 0.0, 0.0, 0.9 * t], screen, c.transform, gl);
 
                 let rect = rectangle::Rectangle::new_round([0.95, 0.95, 0.95, 1.0 * t], 5.0);
@@ -238,7 +243,7 @@ impl ChessRenderer {
 
                     rect.draw(square, &Default::default(), trans, gl);
                     let tex = self.textures.piece_to_texture(&Piece {
-                        color: chess_controller.board.whose_turn(),
+                        color: chess_controller.promotion_color,
                         piece_type: match i {
                             0 => PieceType::Queen,
                             1 => PieceType::Rook,
@@ -256,8 +261,13 @@ impl ChessRenderer {
             if let Some(state) = chess_controller.end_state {
                 let t = chess_controller.end_state_animation.value() as f32;
 
+                let t = match chess_controller.end_state_show {
+                    true => t,
+                    false => 1.0 - t,
+                };
+
                 rectangle([0.0, 0.0, 0.0, 0.9 * t], screen, c.transform, gl);
-                let rect = rectangle::Rectangle::new_round([0.95, 0.95, 0.95, 1.0], 5.0);
+                let rect = rectangle::Rectangle::new_round([0.95, 0.95, 0.95, 1.0 * t], 5.0);
 
                 rect.draw(
                     rectangle::centered([width / 2.0, width / 2.0, width / 3.0, width / 10.0]),

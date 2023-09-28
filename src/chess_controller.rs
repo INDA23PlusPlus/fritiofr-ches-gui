@@ -18,10 +18,12 @@ pub struct ChessController {
     pub animations: Vec<AnimatePosition>,
     pub promotion_move: Option<Move>,
     pub promotion_dialog: bool,
+    pub promotion_color: Color,
     pub promotion_animation: AnimateValue,
     // 0 - Stalemate
     // 1 - Black wins
     // 2 - White wins
+    pub end_state_show: bool,
     pub end_state: Option<usize>,
     pub end_state_animation: AnimateValue,
 }
@@ -39,13 +41,17 @@ impl ChessController {
             promotion_move: None,
             promotion_animation: AnimateValue::new()
                 .duration(0.1)
-                .timing_function(AnimationTimingFunction::Ease),
+                .timing_function(AnimationTimingFunction::Ease)
+                .finish(),
+            promotion_color: Color::White,
             promotion_dialog: false,
 
+            end_state_show: true,
             end_state: None,
             end_state_animation: AnimateValue::new()
                 .duration(0.1)
-                .timing_function(AnimationTimingFunction::Ease),
+                .timing_function(AnimationTimingFunction::Ease)
+                .finish(),
         }
     }
 
@@ -96,6 +102,8 @@ impl ChessController {
 
         if let Some(Button::Mouse(MouseButton::Left)) = e.press_args() {
             if self.end_state.is_some() {
+                self.end_state_show = !self.end_state_show;
+                self.end_state_animation.reset();
                 return;
             }
 
@@ -137,9 +145,6 @@ impl ChessController {
                 return;
             }
 
-            // self.promotion_dialog = true;
-            // return;
-
             let x = (self.cursor_pos[0]) / ((size[0] as f64) / 8.0);
             let y = (self.cursor_pos[1]) / ((size[1] as f64) / 8.0);
 
@@ -158,6 +163,7 @@ impl ChessController {
                     == PieceType::Pawn
                     && (mv.to.row == 0 || mv.to.row == 7)
                 {
+                    self.promotion_color = self.board.whose_turn();
                     self.promotion_move = Some(mv.clone());
                     self.promotion_dialog = true;
                     self.promotion_animation.reset();
@@ -207,7 +213,7 @@ impl ChessController {
 
         self.board.make_move(mv).unwrap();
 
-        if self.board.is_check() {
+        if self.board.is_check() || self.board.is_checkmate() {
             let current_turn = self.board.whose_turn();
             self.check = Some(self.get_king_pos(current_turn));
         } else {
@@ -235,9 +241,7 @@ impl ChessController {
             self.end_state_animation.tick_dt(args.dt);
         }
 
-        if self.promotion_dialog {
-            self.promotion_animation.tick_dt(args.dt);
-        }
+        self.promotion_animation.tick_dt(args.dt);
 
         for a in self.animations.iter_mut() {
             a.tick_dt(args.dt);

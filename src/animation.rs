@@ -20,8 +20,9 @@ pub trait Animation {
     fn duration(self, duration: f64) -> Self;
     fn timing_function(self, timing_function: AnimationTimingFunction) -> Self;
 
-    fn tick_dt(&mut self, dt: f64);
-    fn reset(&mut self);
+    fn tick_dt(&mut self, dt: f64) -> Self;
+    fn reset(&mut self) -> Self;
+    fn finish(&mut self) -> Self;
     fn is_done(&self) -> bool;
 }
 
@@ -73,17 +74,24 @@ impl Animation for AnimateValue {
         self
     }
 
-    fn tick_dt(&mut self, dt: f64) {
+    fn tick_dt(&mut self, dt: f64) -> Self {
         let increment = dt / self.duration;
 
         let v = self.percent + increment;
         let v = if v > 1.0 { 1.0 } else { v };
 
         self.percent = v;
+        self.clone()
     }
 
-    fn reset(&mut self) {
+    fn reset(&mut self) -> Self {
         self.percent = 0.0;
+        self.clone()
+    }
+
+    fn finish(&mut self) -> Self {
+        self.percent = 1.0;
+        self.clone()
     }
 
     fn is_done(&self) -> bool {
@@ -138,12 +146,19 @@ impl Animation for AnimatePosition {
         self
     }
 
-    fn tick_dt(&mut self, dt: f64) {
+    fn tick_dt(&mut self, dt: f64) -> Self {
         self.animation.tick_dt(dt);
+        self.clone()
     }
 
-    fn reset(&mut self) {
+    fn reset(&mut self) -> Self {
         self.animation.reset();
+        self.clone()
+    }
+
+    fn finish(&mut self) -> Self {
+        self.animation.finish();
+        self.clone()
     }
 
     fn is_done(&self) -> bool {
