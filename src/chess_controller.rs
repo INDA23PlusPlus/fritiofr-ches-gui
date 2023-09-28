@@ -43,13 +43,35 @@ impl ChessController {
             .unwrap()
     }
 
-    pub fn event(&mut self, size: [u32; 2], e: &Event) {
-        if !self.animations.is_empty() {
-            return;
+    fn get_castle_move_rook_mv(
+        &self,
+        from: Position,
+        to: Position,
+    ) -> Option<((usize, usize), (usize, usize))> {
+        let piece = self.board.get_board()[from.row as usize][from.col as usize].unwrap();
+
+        if piece.piece_type != PieceType::King {
+            return None;
         }
 
+        if from.col == 4 && to.col == 6 {
+            return Some(((7, from.row as usize), (5, from.row as usize)));
+        }
+
+        if from.col == 4 && to.col == 2 {
+            return Some(((0, from.row as usize), (3, from.row as usize)));
+        }
+
+        None
+    }
+
+    pub fn event(&mut self, size: [u32; 2], e: &Event) {
         if let Some(pos) = e.mouse_cursor_args() {
             self.cursor_pos = pos;
+        }
+
+        if !self.animations.is_empty() {
+            return;
         }
 
         if let Some(Button::Mouse(MouseButton::Left)) = e.press_args() {
@@ -65,11 +87,25 @@ impl ChessController {
                 .find(|mv| (mv.to.col, mv.to.row) == (x as i8, y as i8));
 
             if let Some(mv) = mv {
-                self.animations = vec![AnimatePosition::new()
-                    .duration(0.2)
-                    .timing_function(AnimationTimingFunction::Ease)
-                    .start((mv.from.col as f64, mv.from.row as f64))
-                    .end((mv.to.col as f64, mv.to.row as f64))];
+                self.animations = {
+                    let mut mvs = vec![AnimatePosition::new()
+                        .duration(0.2)
+                        .timing_function(AnimationTimingFunction::Ease)
+                        .start((mv.from.col as f64, mv.from.row as f64))
+                        .end((mv.to.col as f64, mv.to.row as f64))];
+
+                    if let Some((from, to)) = self.get_castle_move_rook_mv(mv.from, mv.to) {
+                        mvs.push(
+                            AnimatePosition::new()
+                                .duration(0.2)
+                                .timing_function(AnimationTimingFunction::Ease)
+                                .start((from.0 as f64, from.1 as f64))
+                                .end((to.0 as f64, to.1 as f64)),
+                        );
+                    }
+
+                    mvs
+                };
 
                 self.board.make_move(mv).unwrap();
 
