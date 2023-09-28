@@ -14,11 +14,16 @@ pub struct ChessController {
     pub from: Option<(usize, usize)>,
     pub moves: Vec<Move>,
     pub check: Option<(usize, usize)>,
-    cursor_pos: [f64; 2],
+    pub cursor_pos: [f64; 2],
     pub animations: Vec<AnimatePosition>,
     pub promotion_move: Option<Move>,
     pub promotion_dialog: bool,
     pub promotion_animation: AnimateValue,
+    // 0 - Stalemate
+    // 1 - Black wins
+    // 2 - White wins
+    pub end_state: Option<usize>,
+    pub end_state_animation: AnimateValue,
 }
 
 impl ChessController {
@@ -36,6 +41,11 @@ impl ChessController {
                 .duration(0.1)
                 .timing_function(AnimationTimingFunction::Ease),
             promotion_dialog: false,
+
+            end_state: None,
+            end_state_animation: AnimateValue::new()
+                .duration(0.1)
+                .timing_function(AnimationTimingFunction::Ease),
         }
     }
 
@@ -85,6 +95,10 @@ impl ChessController {
         }
 
         if let Some(Button::Mouse(MouseButton::Left)) = e.press_args() {
+            if self.end_state.is_some() {
+                return;
+            }
+
             if self.promotion_dialog {
                 let width = 600.0;
                 let size = width / 8.0;
@@ -202,9 +216,25 @@ impl ChessController {
 
         self.from = None;
         self.moves = Vec::new();
+
+        if self.board.is_checkmate() {
+            self.end_state = Some(if self.board.whose_turn() == Color::White {
+                1
+            } else {
+                2
+            });
+            self.end_state_animation.reset();
+        } else if self.board.is_stalemate() {
+            self.end_state = Some(0);
+            self.end_state_animation.reset();
+        }
     }
 
     pub fn update(&mut self, args: &UpdateArgs) {
+        if self.end_state.is_some() {
+            self.end_state_animation.tick_dt(args.dt);
+        }
+
         if self.promotion_dialog {
             self.promotion_animation.tick_dt(args.dt);
         }

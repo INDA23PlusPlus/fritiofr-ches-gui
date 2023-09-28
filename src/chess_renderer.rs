@@ -1,12 +1,13 @@
 use std::path::Path;
 
 use glutin_window::GlutinWindow as Window;
-use opengl_graphics::{GlGraphics, OpenGL, Texture, TextureSettings};
+use opengl_graphics::{Filter, GlGraphics, GlyphCache, OpenGL, Texture, TextureSettings};
 
 use piston::event_loop::{EventSettings, Events};
 use piston::input::{RenderArgs, RenderEvent, UpdateArgs, UpdateEvent};
 use piston::window::WindowSettings;
 
+use piston_window::{Glyphs, TextureContext};
 use ChessAPI::piece::*;
 
 use crate::animation::Animation;
@@ -14,6 +15,8 @@ use crate::chess_controller;
 
 pub struct ChessRenderer {
     gl: GlGraphics, // OpenGL drawing backend.
+    glyphs_regular: GlyphCache<'static>,
+    glyphs_medium: GlyphCache<'static>,
     textures: ChessTextures,
 }
 
@@ -73,8 +76,24 @@ impl ChessRenderer {
             };
         }
 
+        let mut glyphs_regular = GlyphCache::new(
+            "assets/regular.ttf",
+            (),
+            TextureSettings::new().filter(Filter::Nearest),
+        )
+        .expect("Could not load font");
+
+        let mut glyphs_medium = GlyphCache::new(
+            "assets/medium.ttf",
+            (),
+            TextureSettings::new().filter(Filter::Nearest),
+        )
+        .expect("Could not load font");
+
         ChessRenderer {
             gl,
+            glyphs_regular,
+            glyphs_medium,
             textures: ChessTextures {
                 white_pawn: texture!("wP"),
                 white_rook: texture!("wR"),
@@ -232,6 +251,43 @@ impl ChessRenderer {
                     let image = image.clone().color([1.0, 1.0, 1.0, 1.0 * t]);
                     image.draw(tex, &graphics::draw_state::DrawState::default(), trans, gl);
                 }
+            }
+
+            if let Some(state) = chess_controller.end_state {
+                let t = chess_controller.end_state_animation.value() as f32;
+
+                rectangle([0.0, 0.0, 0.0, 0.9 * t], screen, c.transform, gl);
+                let rect = rectangle::Rectangle::new_round([0.95, 0.95, 0.95, 1.0], 5.0);
+
+                rect.draw(
+                    rectangle::centered([width / 2.0, width / 2.0, width / 3.0, width / 10.0]),
+                    &Default::default(),
+                    c.transform,
+                    gl,
+                );
+
+                let text = Text::new_color([0.0, 0.0, 0.0, 1.0 * t], 32);
+
+                let black_won_offset = 7.1;
+                let white_won_offset = 7.05;
+                let stalemate_offset = 7.23;
+
+                let (offset, content) = match state {
+                    2 => (white_won_offset, "White won"),
+                    1 => (black_won_offset, "Black won"),
+                    0 => (stalemate_offset, "Stalemate"),
+                    _ => unreachable!(),
+                };
+
+                text.draw_pos(
+                    content,
+                    [width / 2.0, width / 2.0],
+                    &mut self.glyphs_medium,
+                    &Default::default(),
+                    c.transform.trans(-width / offset, 10.0),
+                    gl,
+                )
+                .unwrap();
             }
         });
     }
