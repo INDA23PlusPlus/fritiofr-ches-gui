@@ -122,6 +122,7 @@ impl ChessRenderer {
         const WHITE_SQUARE_COLOR: [f32; 4] = [0.65, 0.65, 0.65, 1.0];
         const SELECT_COLOR: [f32; 4] = [105.0 / 255.0, 148.0 / 255.0, 111.0 / 255.0, 1.0];
         const CAPTURE_COLOR: [f32; 4] = [148.0 / 255.0, 105.0 / 255.0, 111.0 / 255.0, 1.0];
+        const LAST_MOVE_COLOR: [f32; 4] = [247.0 / 255.0, 233.0 / 255.0, 121.0 / 255.0, 0.5];
 
         let width = args.window_size[0];
 
@@ -142,12 +143,18 @@ impl ChessRenderer {
             clear(BLACK_SQUARE_COLOR, gl);
             for x in 0..8 {
                 for y in 0..8 {
-                    let x = x as f64;
-                    let y = y as f64;
+                    let x_f = x as f64;
+                    let y_f = y as f64;
 
-                    if x % 2.0 == y % 2.0 {
-                        let transform = c.transform.trans(x * size, y * size);
+                    if x_f % 2.0 == y_f % 2.0 {
+                        let transform = c.transform.trans(x_f * size, y_f * size);
                         rectangle(WHITE_SQUARE_COLOR, square, transform, gl);
+                    }
+                    if Some((x, y)) == chess_controller.last_to
+                        || Some((x, y)) == chess_controller.last_from
+                    {
+                        let transform = c.transform.trans((x_f as f64) * size, (y_f as f64) * size);
+                        rectangle(LAST_MOVE_COLOR, square, transform, gl);
                     }
                 }
             }

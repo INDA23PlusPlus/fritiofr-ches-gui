@@ -12,6 +12,8 @@ use crate::animation::AnimationTimingFunction;
 pub struct ChessController {
     pub board: Board,
     pub from: Option<(usize, usize)>,
+    pub last_from: Option<(usize, usize)>,
+    pub last_to: Option<(usize, usize)>,
     pub moves: Vec<Move>,
     pub check: Option<(usize, usize)>,
     pub cursor_pos: [f64; 2],
@@ -33,6 +35,8 @@ impl ChessController {
         ChessController {
             board: Board::new(),
             from: None,
+            last_from: None,
+            last_to: None,
             check: None,
             moves: Vec::new(),
             cursor_pos: [0.0, 0.0],
@@ -212,6 +216,9 @@ impl ChessController {
         };
 
         self.board.make_move(mv).unwrap();
+
+        self.last_from = Some((mv.from.col as usize, mv.from.row as usize));
+        self.last_to = Some((mv.to.col as usize, mv.to.row as usize));
 
         if self.board.is_check() || self.board.is_checkmate() {
             let current_turn = self.board.whose_turn();
