@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 ChessAPI = { git = "https://github.com/INDA23PlusPlus/arjon-chessapi" }
-fritiofr_chess = { git = "https://github.com/INDA23PlusPlus/fritiofr-chess" }
+chess-network-protocol = { git = "https://github.com/INDA23PlusPlus/chess-network-protocol" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 piston = "0.53.0"
 piston2d-graphics = "0.43.0"

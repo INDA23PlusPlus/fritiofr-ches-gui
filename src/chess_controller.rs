@@ -1,3 +1,8 @@
+use serde::{Deserialize, Serialize};
+use std::net::TcpStream;
+
+use chess_network_protocol::ClientToServer;
+use chess_network_protocol::ServerToClient;
 use piston::input::*;
 use piston::Event;
 
@@ -19,6 +24,7 @@ pub struct ChessController {
     pub cursor_pos: [f64; 2],
     pub animations: Vec<AnimatePosition>,
     pub promotion_move: Option<Move>,
+    client: ClientHandle,
     pub promotion_dialog: bool,
     pub promotion_color: Color,
     pub promotion_animation: AnimateValue,
@@ -32,6 +38,15 @@ pub struct ChessController {
 
 impl ChessController {
     pub fn new() -> ChessController {
+        let tcp_stream = TcpStream::connect("0.0.0.0:8080").unwrap();
+
+        let handshake = chess_network_protocol::ClientToServerHandshake {
+            server_color: chess_network_protocol::Color::Black,
+        };
+
+        serde_json::to_writer(&tcp_stream, &handshake).unwrap();
+        let client = ClientHandle { stream: tcp_stream };
+
         ChessController {
             board: Board::new(),
             from: None,
@@ -41,6 +56,7 @@ impl ChessController {
             moves: Vec::new(),
             cursor_pos: [0.0, 0.0],
             animations: vec![],
+            client,
 
             promotion_move: None,
             promotion_animation: AnimateValue::new()
@@ -96,6 +112,27 @@ impl ChessController {
     }
 
     pub fn event(&mut self, size: [u32; 2], e: &Event) {
+        if self.board.whose_turn() == Color::Black {
+            let mv = self.client.listen_move();
+            self.make_move(&Move {
+                from: Position {
+                    row: mv.start_x as i8,
+                    col: mv.start_y as i8,
+                },
+                to: Position {
+                    row: mv.end_x as i8,
+                    col: mv.end_y as i8,
+                },
+                promotion: match mv.promotion {
+                    chess_network_protocol::Piece::BlackQueen => Some(PieceType::Queen),
+                    chess_network_protocol::Piece::BlackRook => Some(PieceType::Rook),
+                    chess_network_protocol::Piece::BlackBishop => Some(PieceType::Bishop),
+                    chess_network_protocol::Piece::BlackKnight => Some(PieceType::Knight),
+                    _ => None,
+                },
+            });
+        }
+
         if let Some(Button::Keyboard(key)) = e.press_args() {
             match key {
                 Key::R => {
@@ -205,6 +242,12 @@ impl ChessController {
     }
 
     fn make_move(&mut self, mv: &Move) {
+        self.client.make_move(
+            (mv.from.col as usize, mv.from.row as usize),
+            (mv.to.col as usize, mv.to.row as usize),
+            chess_network_protocol::Piece::WhiteQueen,
+        );
+
         self.animations = {
             let mut mvs = vec![AnimatePosition::new()
                 .duration(0.2)
@@ -265,5 +308,37 @@ impl ChessController {
         }
 
         self.animations.retain(|a| !a.is_done());
+    }
+}
+
+struct ClientHandle {
+    stream: TcpStream,
+}
+
+impl ClientHandle {
+    fn make_move(
+        &mut self,
+        start: (usize, usize),
+        end: (usize, usize),
+        promotion: chess_network_protocol::Piece,
+    ) {
+        let mv = ClientToServer::Move(chess_network_protocol::Move {
+            start_x: start.0,
+            start_y: start.1,
+            end_x: end.0,
+            end_y: end.1,
+            promotion,
+        });
+
+        serde_json::to_writer(&self.stream, &mv).unwrap();
+    }
+
+    fn listen_move(&mut self) -> chess_network_protocol::Move {
+        let mut de = serde_json::Deserializer::from_reader(&self.stream);
+        let deserialized = ServerToClient::deserialize(&mut de).unwrap();
+        match deserialized {
+            ServerToClient::State { move_made, .. } => move_made,
+            _ => unimplemented!(),
+        }
     }
 }

@@ -170,6 +170,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "chess-network-protocol"
+version = "0.1.0"
+source = "git+https://github.com/INDA23PlusPlus/chess-network-protocol#9c862a35f072ef86453af8ff79ff5cf26ca02308"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -381,21 +390,15 @@ name = "fritiofr-chess-gui"
 version = "0.1.0"
 dependencies = [
  "ChessAPI",
+ "chess-network-protocol",
  "find_folder",
- "fritiofr_chess",
  "piston",
  "piston2d-graphics",
  "piston2d-opengl_graphics",
  "piston_window",
  "pistoncore-glutin_window",
-]
-
-[[package]]
-name = "fritiofr_chess"
-version = "0.1.1"
-source = "git+https://github.com/INDA23PlusPlus/fritiofr-chess#e52c4953889d1ab079b5379475bddc53e7039629"
-dependencies = [
- "thiserror",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -617,6 +620,12 @@ name = "interpolation"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3b7357d2bbc5ee92f8e899ab645233e43d21407573cceb37fed8bc3dede2c02"
+
+[[package]]
+name = "itoa"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af150ab688ff2122fcef229be89cb50dd66af9e01a4ff320cc137eecc9bacc38"
 
 [[package]]
 name = "jni-sys"
@@ -1290,6 +1299,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ryu"
+version = "1.0.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ad4cc8da4ef723ed60bced201181d83791ad433213d8c24efffda1eec85d741"
+
+[[package]]
 name = "scoped-tls"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1332,6 +1347,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.37",
+]
+
+[[package]]
+name = "serde_json"
+version = "1.0.107"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b420ce6e3d8bd882e9b243c6eed35dbc9a6110c9769e74b584e0d68d1f20c65"
+dependencies = [
+ "itoa",
+ "ryu",
+ "serde",
 ]
 
 [[package]]
