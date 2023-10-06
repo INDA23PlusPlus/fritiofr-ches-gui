@@ -96,6 +96,16 @@ impl ChessController {
     }
 
     pub fn event(&mut self, size: [u32; 2], e: &Event) {
+        if let Some(Button::Keyboard(key)) = e.press_args() {
+            match key {
+                Key::R => {
+                    *self = ChessController::new();
+                    return;
+                }
+                _ => {}
+            }
+        }
+
         if let Some(pos) = e.mouse_cursor_args() {
             self.cursor_pos = pos;
         }
